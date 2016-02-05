@@ -15,6 +15,9 @@ Use hapcut reads from _C. grandiflora_ aligned to _C. rubella_ to see if long st
 	* 27, 28, 87, 100, 101, 102, 107, 196
 * 4 FEB 2016: plotted hapcut results & highlighted blocks containing part of the putative FT locus
 	* plots in `haps.pdf`	
+* 5 FEB 2016: plotted using `phased` instead to correct for possible confounding of polymorphism and similarity
+	* plots in `haps_snps.pdf`
 
 ### To Do:
+* run hapcut on 141, 174, 193, 33, 198
 * run hapcut on full 196 dataset, parse, and plot
