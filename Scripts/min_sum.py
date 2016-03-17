@@ -4,7 +4,7 @@ def arguments():
         parser = argparse.ArgumentParser(description="Program to take hapcut output and return various forms of the minsum metric. Must supply at least one of -r, -m, -w")
         parser.add_argument("-i", "--input", help="path to hapcut file", required=True)
         parser.add_argument('-o', '--output', help='output path with file name omitted. file name will be the input file name.', required=True)
-        parser.add_argument('-w', '--windowsize', help='size of window in bp', type=int)
+        parser.add_argument('-w', '--windowsize', help='size of window in snps', type=int)
         parser.add_argument('-r', '--runs', help='use this flag to run runs of reference minsum', action='store_true')
         parser.add_argument('-m', '--minsum', help='use this flag to run minsum', action='store_true')
         args = parser.parse_args()
@@ -144,6 +144,110 @@ def runsofrub(lines, id, outpath):
                         '\t' + '2' + '\n')
 	outfile.close()		
 
+def windows(lines, id, outpath, windowsize):
+	outfile = outpath + id + '.minwindows'
+        outfile = open(outfile, 'w')
+        outfile.write('chr' + '\t' + 'start' + '\t' + 'end' + '\t' + 'snps' + '\t' + 'min' + '\t' + 'max' + '\n')
+
+	#create blank list of lines in each block
+	block = []	
+
+        for line in lines:
+
+                #we really only need the lines with actual information
+                #don't need metadata from BLOCK line for this metric
+                if '********' not in line and 'BLOCK' not in line:
+			block.append([line])
+		
+		elif '********' in line:
+			#only run windowed block if block has enough snps
+			if len(block) >= windowsize:
+				x = True
+				firstline = 0
+				lastline = windowsize
+				sub=[]
+				
+				while x is True:
+					#define sub block size
+					sub = block[firstline:lastline]
+					
+					#run minsum on sub block window
+					minsum, maxsum = windowed_minsum(sub)
+				
+					first = ''.join(block[firstline])
+					last = ''.join(block[lastline-1])
+	
+				
+					#write results of subblock to file
+					outfile.write(str(first.split()[3]) + '\t' + str(first.split()[4]) + '\t' + str(last.split()[4]) +
+						 '\t' + str(len(sub)) + '\t' + str(minsum) + '\t' + str(maxsum) + '\n')
+
+					#add iteration to first and last lines (unless last line in block)
+					if block[lastline-1] == block[-1]:
+						x = False
+					else:
+						firstline+=1
+						lastline+=1
+						sub=[]
+			#reset block to blank after finishing windowed analysis	
+			block = []
+
+	#run windowed minsum on last block in file
+	if len(block) >= windowsize:
+        	x = True
+                firstline = 0
+                lastline = windowsize
+		sub=[]
+
+                while x is True:
+
+                        #define sub-block size
+			sub = block[firstline:lastline]
+			
+                        #run min_sum on sub-block window
+                        minsum, maxsum = windowed_minsum(sub)
+			
+			first = ''.join(block[firstline])
+                        last = ''.join(block[lastline-1])
+
+                        #write	results	of subblock to file
+                        outfile.write(str(first.split()[3]) + '\t' + str(first.split()[4]) + '\t' + str(last.split()[4]) +
+                        	'\t' + str(len(sub)) + '\t' + str(minsum) + '\t' + str(maxsum) + '\n')
+
+                        #add iteration	to first and last lines	(unless	last line in block)
+                        if block[lastline-1] == block[-1]:
+                        	x = False
+                        else:
+                        	firstline+=1
+                                lastline+=1
+				sub=[]
+
+	outfile.close()
+
+def windowed_minsum(window):
+	min=0
+        max=0
+        hap1=0
+        hap2=0
+
+        for line in window:
+		cols = ''.join(line)
+		cols = cols.split()
+                hap1 += int(cols[1])
+                hap2 += int(cols[2])
+
+        if hap1 > hap2:
+                min = hap2
+                max = hap1
+        elif hap2 > hap1:
+                min = hap1
+                max = hap2
+	elif hap1==hap2:
+		min = hap1
+		max = hap2
+	return(min, max)
+
+
 #############################################
 # Begin script
 #############################################
@@ -174,6 +278,8 @@ if args.runs:
 	print 'runs of rubellaness finished'
 
 #only run windowed module if specified windowsize
-#if args.windowsize:
-	
+if args.windowsize:
+	print 'running windowed minsum'
+	windows(lines, id, outpath, args.windowsize)
+	print 'windowed minsum finished'
 infile.close()
